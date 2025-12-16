@@ -1,0 +1,56 @@
+@startuml
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam backgroundColor #FFFFFF
+
+title Real-Time Quantitative Analytics Platform – Architecture
+
+actor Trader as User
+
+component "Streamlit Frontend\n(UI Dashboard)" as Frontend {
+  [Controls]
+  [Charts\n(Plotly)]
+  [Alerts]
+  [CSV Upload / Export]
+}
+
+component "Analytics Engine\n(Pandas + Statsmodels)" as Analytics {
+  [Resampling\n1s / 1m / 5m]
+  [OLS Hedge Ratio]
+  [Spread & Z-Score]
+  [ADF Test]
+}
+
+component "In-Memory Buffer\n(deque)" as Buffer
+
+component "WebSocket Ingestion\n(Async Binance Client)" as Ingestion {
+  [Binance WS Client]
+}
+
+cloud "Binance Exchange\n(SPOT WebSocket)" as Binance
+
+User --> Frontend : User Interaction\n(Symbols, Timeframe)
+
+Frontend --> Analytics : Trigger Analytics\n(Recompute)
+
+Analytics --> Buffer : Read Snapshot\n(Thread-safe)
+
+Ingestion --> Buffer : Append Ticks
+
+Binance --> Ingestion : Live Trade Stream\n(JSON)
+
+Analytics --> Frontend : Metrics & Series\n(Beta, Z-score)
+
+Frontend --> User : Visualization\nAlerts\nExport
+
+note right of Ingestion
+Runs in background thread.
+Auto-reconnect logic.
+end note
+
+note bottom of Analytics
+Statistical arbitrage
+calculations on demand.
+end note
+
+@enduml
